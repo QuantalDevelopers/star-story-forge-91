@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Home, User, LogIn } from 'lucide-react';
+import { User, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,46 +14,53 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: <Home size={20} /> },
-    { path: '/stories', label: 'My Stories', icon: <BookOpen size={20} /> },
-    user 
-      ? { path: '/profile', label: 'Profile', icon: <User size={20} /> }
-      : { path: '/auth', label: 'Sign In', icon: <LogIn size={20} /> },
-  ];
-
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="py-4 px-6 border-b">
-        <div className="container flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">STAR Story Forge</h1>
-          {user && (
-            <div className="text-sm text-muted-foreground">
-              {user.email}
-            </div>
-          )}
+      {/* Top Navbar */}
+      <header className="border-b bg-background/95 backdrop-blur-sm z-10 sticky top-0">
+        <div className="container flex justify-between items-center py-4">
+          <Link to="/" className="text-xl font-bold text-primary">
+            Star Story Forge
+          </Link>
+          
+          <div className="flex items-center space-x-1">
+            <Link to="/stories">
+              <Button 
+                variant={location.pathname === '/stories' ? "default" : "ghost"}
+                className="flex items-center gap-2"
+              >
+                <BookOpen size={18} />
+                Your Stories
+              </Button>
+            </Link>
+          </div>
+          
+          <div>
+            {user ? (
+              <Link to="/profile">
+                <Button variant="ghost" className="rounded-full p-2" aria-label="Profile">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                      {user.email?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </Link>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm">Sign In</Button>
+              </Link>
+            )}
+          </div>
         </div>
       </header>
       
-      <main className="flex-1 container px-4 py-8 max-w-4xl">
+      <main className="flex-1 container px-4 py-8">
         {children}
       </main>
       
-      <nav className="fixed bottom-0 left-0 w-full border-t bg-background/95 backdrop-blur-sm z-10">
-        <div className="container flex justify-between items-center py-2 px-4">
-          {navItems.map((item) => (
-            <Link to={item.path} key={item.path}>
-              <Button
-                variant={location.pathname === item.path ? "default" : "ghost"}
-                className="flex flex-col gap-1 h-auto py-2"
-              >
-                {item.icon}
-                <span className="text-xs">{item.label}</span>
-              </Button>
-            </Link>
-          ))}
-        </div>
-      </nav>
+      {/* ElevenLabs Convai Widget */}
+      <elevenlabs-convai agent-id="23g4tA9QfQmk5A2msRMO"></elevenlabs-convai>
     </div>
   );
 };

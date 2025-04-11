@@ -3,14 +3,13 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/Layout';
-import { BookOpenCheck, Filter, Sparkles } from 'lucide-react';
+import { BookOpenCheck, Sparkles, FileEdit, Box } from 'lucide-react';
 import { useStories } from '@/contexts/StoryContext';
-import EmptyState from '@/components/EmptyState';
-import StoryCard from '@/components/StoryCard';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
 
 const Index = () => {
-  const { stories, deleteStory } = useStories();
+  const { stories } = useStories();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -18,7 +17,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold mb-2">STAR Story Forge</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
@@ -39,55 +38,63 @@ const Index = () => {
               Sign In or Create Account
             </Button>
           </div>
-        ) : !hasStories ? (
-          <EmptyState
-            title="No stories yet"
-            description="Your story collection is empty. Import existing stories or browse the story collection."
-            buttonText="Browse Stories"
-            buttonLink="/stories"
-            icon="file"
-          />
         ) : (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <div className="flex items-center">
-                <BookOpenCheck size={20} className="mr-2 text-primary" />
-                <h2 className="text-xl font-semibold">Your Stories</h2>
-                <div className="ml-3 bg-secondary text-muted-foreground px-2 py-1 rounded-md text-xs">
-                  {stories.length} {stories.length === 1 ? 'story' : 'stories'}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-blue-50" onClick={() => navigate('/stories')}>
+              <CardContent className="p-0">
+                <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
+                  <div className="rounded-full bg-blue-100 p-4 mb-4">
+                    <BookOpenCheck size={32} className="text-blue-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">Delivery Companion</h2>
+                  <p className="text-muted-foreground">
+                    Practice and refine your interview delivery with real-time feedback
+                  </p>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  <Filter size={16} className="mr-1" />
-                  Filter
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {stories.map((story) => (
-                <StoryCard 
-                  key={story.id} 
-                  story={story} 
-                  onDelete={deleteStory} 
-                />
-              ))}
-            </div>
-          </>
+              </CardContent>
+            </Card>
+            
+            <Card className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-indigo-50" onClick={() => navigate('/stories')}>
+              <CardContent className="p-0">
+                <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
+                  <div className="rounded-full bg-indigo-100 p-4 mb-4">
+                    <Sparkles size={32} className="text-indigo-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">Star Companion</h2>
+                  <p className="text-muted-foreground">
+                    Get AI guidance to structure your responses using the STAR method
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50" onClick={() => navigate('/edit/new')}>
+              <CardContent className="p-0">
+                <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center">
+                  <div className="rounded-full bg-pink-100 p-4 mb-4">
+                    <FileEdit size={32} className="text-pink-600" />
+                  </div>
+                  <h2 className="text-xl font-semibold mb-2">Start from scratch</h2>
+                  <p className="text-muted-foreground">
+                    Create a new interview story from the beginning
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
-        <div className="mt-20 text-center">
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-accent mb-4">
-            <Sparkles size={16} className="mr-2 text-primary" />
-            <span className="text-sm font-medium">AI-Powered</span>
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Prepare Better, Interview Stronger</h2>
-          <p className="text-muted-foreground max-w-lg mx-auto mb-6">
-            Use our AI assistance to help craft compelling STAR stories that showcase your 
-            leadership abilities and experience.
-          </p>
-          {!user ? (
+        {!user && (
+          <div className="mt-20 text-center">
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-accent mb-4">
+              <Sparkles size={16} className="mr-2 text-primary" />
+              <span className="text-sm font-medium">AI-Powered</span>
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Prepare Better, Interview Stronger</h2>
+            <p className="text-muted-foreground max-w-lg mx-auto mb-6">
+              Use our AI assistance to help craft compelling STAR stories that showcase your 
+              leadership abilities and experience.
+            </p>
             <Button 
               size="lg" 
               onClick={() => navigate('/auth')}
@@ -95,16 +102,8 @@ const Index = () => {
             >
               Get Started
             </Button>
-          ) : (
-            <Button 
-              size="lg"
-              onClick={() => navigate('/stories')} 
-              className="animate-slide-up"
-            >
-              Browse Stories
-            </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
