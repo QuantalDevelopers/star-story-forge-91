@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, Home, Plus, PlayCircle } from 'lucide-react';
+import { BookOpen, Home, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,12 +11,14 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user } = useAuth();
 
   const navItems = [
     { path: '/', label: 'Home', icon: <Home size={20} /> },
-    { path: '/create', label: 'Create', icon: <Plus size={20} /> },
-    { path: '/practice', label: 'Practice', icon: <PlayCircle size={20} /> },
     { path: '/stories', label: 'My Stories', icon: <BookOpen size={20} /> },
+    user 
+      ? { path: '/profile', label: 'Profile', icon: <User size={20} /> }
+      : { path: '/auth', label: 'Sign In', icon: <LogIn size={20} /> },
   ];
 
   return (
@@ -23,6 +26,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="py-4 px-6 border-b">
         <div className="container flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">STAR Story Forge</h1>
+          {user && (
+            <div className="text-sm text-muted-foreground">
+              {user.email}
+            </div>
+          )}
         </div>
       </header>
       

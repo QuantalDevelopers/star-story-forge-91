@@ -3,13 +3,15 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Layout from '@/components/Layout';
-import { BookOpenCheck, Filter, Plus, Sparkles } from 'lucide-react';
+import { BookOpenCheck, Filter, Sparkles } from 'lucide-react';
 import { useStories } from '@/contexts/StoryContext';
 import EmptyState from '@/components/EmptyState';
 import StoryCard from '@/components/StoryCard';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const { stories, deleteStory } = useStories();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const hasStories = stories.length > 0;
@@ -24,12 +26,25 @@ const Index = () => {
           </p>
         </div>
 
-        {!hasStories ? (
+        {!user ? (
+          <div className="text-center py-10">
+            <h2 className="text-2xl font-bold mb-4">Welcome to STAR Story Forge</h2>
+            <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+              Sign in to manage your interview stories and prepare for your next interview.
+            </p>
+            <Button 
+              onClick={() => navigate('/auth')}
+              size="lg"
+            >
+              Sign In or Create Account
+            </Button>
+          </div>
+        ) : !hasStories ? (
           <EmptyState
             title="No stories yet"
-            description="Create your first interview story to get started. Use the STAR format to structure your experiences."
-            buttonText="Create Your First Story"
-            buttonLink="/create"
+            description="Your story collection is empty. Import existing stories or browse the story collection."
+            buttonText="Browse Stories"
+            buttonLink="/stories"
             icon="file"
           />
         ) : (
@@ -46,10 +61,6 @@ const Index = () => {
                 <Button variant="outline" size="sm">
                   <Filter size={16} className="mr-1" />
                   Filter
-                </Button>
-                <Button onClick={() => navigate('/create')}>
-                  <Plus size={16} className="mr-1" />
-                  New Story
                 </Button>
               </div>
             </div>
@@ -76,13 +87,23 @@ const Index = () => {
             Use our AI assistance to help craft compelling STAR stories that showcase your 
             leadership abilities and experience.
           </p>
-          <Button 
-            size="lg" 
-            onClick={() => navigate('/create')}
-            className="animate-slide-up"
-          >
-            Get Started
-          </Button>
+          {!user ? (
+            <Button 
+              size="lg" 
+              onClick={() => navigate('/auth')}
+              className="animate-slide-up"
+            >
+              Get Started
+            </Button>
+          ) : (
+            <Button 
+              size="lg"
+              onClick={() => navigate('/stories')} 
+              className="animate-slide-up"
+            >
+              Browse Stories
+            </Button>
+          )}
         </div>
       </div>
     </Layout>
