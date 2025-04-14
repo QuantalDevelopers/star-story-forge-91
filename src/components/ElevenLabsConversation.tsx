@@ -14,15 +14,21 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   const [status, setStatus] = useState<'disconnected' | 'connected'>('disconnected');
   const [mode, setMode] = useState<'listening' | 'speaking'>('listening');
   const conversationRef = useRef<any>(null);
-  const [Conversation, setConversation] = useState<any>(null);
+  const [conversationModule, setConversationModule] = useState<any>(null);
 
   // Dynamically import the @11labs/client package to avoid SSR issues
   useEffect(() => {
-    import('@11labs/client').then((module) => {
-      setConversation(module.Conversation);
-    }).catch(err => {
-      console.error("Failed to load ElevenLabs client:", err);
-    });
+    const loadElevenLabsClient = async () => {
+      try {
+        const module = await import('@11labs/client');
+        setConversationModule(module);
+      } catch (err) {
+        console.error("Failed to load ElevenLabs client:", err);
+        toast.error("Failed to load ElevenLabs client");
+      }
+    };
+    
+    loadElevenLabsClient();
   }, []);
 
   const getTitle = () => {
@@ -49,13 +55,13 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      if (!Conversation) {
+      if (!conversationModule) {
         toast.error("ElevenLabs client not loaded yet. Please try again in a moment.");
         return;
       }
 
       // Start the conversation
-      const conversation = await Conversation.startSession({
+      const conversation = await conversationModule.Conversation.startSession({
         agentId: '23g4tA9QfQmk5A2msRMO',
         overrides: {
           agent: {
