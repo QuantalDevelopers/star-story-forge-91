@@ -7,29 +7,29 @@ import { BookOpenCheck, Sparkles, FileEdit } from 'lucide-react';
 import { useStories } from '@/contexts/StoryContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
-import { openElevenLabsWidget, setWidgetContext } from '@/utils/elevenlabsHelper';
+import { setWidgetContext } from '@/utils/elevenlabsHelper';
 import { toast } from 'sonner';
+import ElevenLabsConversation from '@/components/ElevenLabsConversation';
 
 const Index = () => {
   const { stories } = useStories();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeMode, setActiveMode] = useState<'none' | 'delivery' | 'star'>('none');
+  const [activeMode, setActiveMode] = useState<'none' | 'delivery' | 'star' | 'scratch'>('none');
 
   const hasStories = stories.length > 0;
 
-  const handleCompanionClick = (type: 'delivery' | 'star') => {
+  const handleCompanionClick = (type: 'delivery' | 'star' | 'scratch') => {
     setActiveMode(type);
     const message = setWidgetContext(type);
-    
-    // Open the ElevenLabs widget
-    openElevenLabsWidget();
     
     // Show a toast message to guide the user
     toast.success(
       type === 'delivery' 
         ? "Delivery Companion activated" 
-        : "STAR Method Companion activated",
+        : type === 'star'
+          ? "STAR Method Companion activated"
+          : "Start from scratch activated",
       { 
         description: message
       }
@@ -59,10 +59,15 @@ const Index = () => {
               Sign In or Create Account
             </Button>
           </div>
+        ) : activeMode !== 'none' ? (
+          <ElevenLabsConversation 
+            type={activeMode} 
+            onClose={() => setActiveMode('none')} 
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card 
-              className={`overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-blue-50 ${activeMode === 'delivery' ? 'border-primary ring-2 ring-primary/20' : ''}`} 
+              className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-blue-50" 
               onClick={() => handleCompanionClick('delivery')}
             >
               <CardContent className="p-0">
@@ -79,7 +84,7 @@ const Index = () => {
             </Card>
             
             <Card 
-              className={`overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-indigo-50 ${activeMode === 'star' ? 'border-primary ring-2 ring-primary/20' : ''}`}
+              className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-indigo-50"
               onClick={() => handleCompanionClick('star')}
             >
               <CardContent className="p-0">
@@ -97,7 +102,7 @@ const Index = () => {
             
             <Card 
               className="overflow-hidden border-2 hover:border-primary transition-colors cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50" 
-              onClick={() => navigate('/edit/new')}
+              onClick={() => handleCompanionClick('scratch')}
             >
               <CardContent className="p-0">
                 <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center">

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { User, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,26 +13,6 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const { user } = useAuth();
-
-  // This ensures the widget is loaded after the component mounts
-  useEffect(() => {
-    // The widget is already loaded in index.html, so we don't need to reload it
-    // We just need to make sure the element exists in the DOM
-    const existingWidget = document.querySelector('elevenlabs-convai');
-    if (!existingWidget) {
-      // Create the widget element if it doesn't exist
-      const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', '23g4tA9QfQmk5A2msRMO');
-      
-      // Position the widget in the corner
-      widget.style.position = 'fixed';
-      widget.style.bottom = '20px';
-      widget.style.right = '20px';
-      widget.style.zIndex = '1000';
-      
-      document.body.appendChild(widget);
-    }
-  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -78,8 +58,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-1 container px-4 py-8">
         {children}
       </main>
-      
-      {/* ElevenLabs Convai Widget is now inserted via useEffect */}
     </div>
   );
 };

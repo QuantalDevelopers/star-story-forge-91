@@ -4,48 +4,21 @@
  */
 
 /**
- * Triggers the ElevenLabs Convai widget to open with a specific context
- * @param context Optional context to set for the conversation
+ * Set the context for the conversation
  */
-export const openElevenLabsWidget = (context?: string) => {
-  // Find the widget element
-  const widget = document.querySelector('elevenlabs-convai') as HTMLElement;
-  
-  if (!widget) {
-    console.error('ElevenLabs widget not found');
-    return;
-  }
-
-  // First make sure the widget is visible
-  widget.style.display = 'block';
-  
-  // Force a click on the widget to open it
-  const clickEvent = new MouseEvent('click', {
-    bubbles: true,
-    cancelable: true,
-    view: window
-  });
-  
-  widget.dispatchEvent(clickEvent);
-  
-  // If we have a context, we could set it here
-  // This would require additional widget API implementation
-};
-
-/**
- * Set the context for the conversation - this would need to be implemented 
- * based on the available ElevenLabs API
- */
-export const setWidgetContext = (type: 'delivery' | 'star') => {
-  // In a real implementation, we would communicate with the widget
-  // using its API to set the context
+export const setWidgetContext = (type: 'delivery' | 'star' | 'scratch') => {
+  // Log the context type for debugging
   console.log(`Setting widget context to: ${type}`);
   
-  // Example of how we might set context if the API supports it
-  const message = type === 'delivery' 
-    ? "I'll help you practice delivering your interview stories effectively."
-    : "I'll help you structure your responses using the STAR method.";
-    
-  // For now we just return the message that could be displayed to the user
-  return message;
+  // Return appropriate message based on the context type
+  switch(type) {
+    case 'delivery':
+      return "I'll help you practice delivering your interview stories effectively with real-time feedback on your communication style.";
+    case 'star':
+      return "I'll help you structure your responses using the STAR method (Situation, Task, Action, Result) for impactful storytelling.";
+    case 'scratch':
+      return "I'll help you create new interview stories from the beginning, guiding you through the entire process.";
+    default:
+      return "How can I help you with your interview preparation today?";
+  }
 };
