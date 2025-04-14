@@ -15,6 +15,7 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   const [mode, setMode] = useState<'listening' | 'speaking'>('listening');
   const conversationRef = useRef<any>(null);
   const [conversationModule, setConversationModule] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Dynamically import the @11labs/client package to avoid SSR issues
   useEffect(() => {
@@ -52,17 +53,22 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
 
   const startConversation = async () => {
     try {
+      setIsLoading(true);
+      
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       if (!conversationModule) {
         toast.error("ElevenLabs client not loaded yet. Please try again in a moment.");
+        setIsLoading(false);
         return;
       }
 
-      // Start the conversation
+      console.log("Starting conversation with prompt:", getPrompt());
+
+      // Start the conversation with proper error handling
       const conversation = await conversationModule.Conversation.startSession({
-        agentId: '23g4tA9QfQmk5A2msRMO',
+        agentId: '23g4tA9QfQmk5A2msRMO', // ElevenLabs Interview Coach agent ID
         overrides: {
           agent: {
             prompt: {
@@ -71,36 +77,50 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
           },
         },
         onConnect: () => {
+          console.log("Conversation connected successfully");
           setStatus('connected');
           toast.success(`${getTitle()} connected`);
+          setIsLoading(false);
         },
         onDisconnect: () => {
+          console.log("Conversation disconnected");
           setStatus('disconnected');
           toast.info(`${getTitle()} disconnected`);
+          setIsLoading(false);
         },
         onError: (error: any) => {
           console.error('Conversation error:', error);
           toast.error(`Error: ${error.message || 'Unknown error'}`);
+          setIsLoading(false);
         },
         onModeChange: (modeInfo: any) => {
+          console.log("Mode changed to:", modeInfo.mode);
           setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
         },
+        onMessage: (message: any) => {
+          console.log("Received message:", message);
+        }
       });
       
       conversationRef.current = conversation;
+      console.log("Conversation reference set:", conversationRef.current);
     } catch (error) {
       console.error('Failed to start conversation:', error);
       toast.error(`Failed to start conversation: ${(error as Error).message || 'Unknown error'}`);
+      setIsLoading(false);
     }
   };
 
   const stopConversation = async () => {
     if (conversationRef.current) {
       try {
+        console.log("Ending conversation session");
         await conversationRef.current.endSession();
+        console.log("Conversation ended successfully");
         conversationRef.current = null;
       } catch (error) {
         console.error('Failed to end conversation:', error);
+        toast.error(`Failed to end conversation: ${(error as Error).message || 'Unknown error'}`);
       }
     }
   };
@@ -108,7 +128,10 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      stopConversation();
+      if (conversationRef.current) {
+        console.log("Component unmounting, cleaning up conversation");
+        stopConversation();
+      }
     };
   }, []);
 
@@ -125,10 +148,10 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
         <div className="flex justify-center gap-4">
           <Button 
             onClick={startConversation} 
-            disabled={status === 'connected'}
+            disabled={status === 'connected' || isLoading}
             className="px-6"
           >
-            Start Conversation
+            {isLoading ? 'Connecting...' : 'Start Conversation'}
           </Button>
           <Button 
             onClick={stopConversation} 
