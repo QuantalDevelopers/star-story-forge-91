@@ -5,18 +5,6 @@ import { Card } from '@/components/ui/card';
 import { Mic, MicOff, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-// This will be populated when we import the actual library
-let Conversation: any;
-
-// Dynamically import the @11labs/client package to avoid SSR issues
-useEffect(() => {
-  import('@11labs/client').then((module) => {
-    Conversation = module.Conversation;
-  }).catch(err => {
-    console.error("Failed to load ElevenLabs client:", err);
-  });
-}, []);
-
 type ElevenLabsConversationProps = {
   type: 'delivery' | 'star' | 'scratch';
   onClose: () => void;
@@ -26,6 +14,16 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   const [status, setStatus] = useState<'disconnected' | 'connected'>('disconnected');
   const [mode, setMode] = useState<'listening' | 'speaking'>('listening');
   const conversationRef = useRef<any>(null);
+  const [Conversation, setConversation] = useState<any>(null);
+
+  // Dynamically import the @11labs/client package to avoid SSR issues
+  useEffect(() => {
+    import('@11labs/client').then((module) => {
+      setConversation(module.Conversation);
+    }).catch(err => {
+      console.error("Failed to load ElevenLabs client:", err);
+    });
+  }, []);
 
   const getTitle = () => {
     switch(type) {
