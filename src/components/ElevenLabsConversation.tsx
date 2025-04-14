@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -16,9 +15,8 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   const conversationRef = useRef<any>(null);
   const [conversationModule, setConversationModule] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey] = useState(import.meta.env.VITE_ELEVENLABS_API_KEY);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
-  // Dynamically import the @11labs/client package to avoid SSR issues
   useEffect(() => {
     const loadElevenLabsClient = async () => {
       try {
@@ -30,7 +28,19 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
       }
     };
     
+    const fetchApiKey = async () => {
+      try {
+        const response = await fetch('/api/elevenlabs-key');
+        const data = await response.json();
+        setApiKey(data.apiKey);
+      } catch (error) {
+        console.error("Failed to fetch ElevenLabs API key:", error);
+        toast.error("Failed to retrieve API key");
+      }
+    };
+
     loadElevenLabsClient();
+    fetchApiKey();
   }, []);
 
   const getTitle = () => {
@@ -54,9 +64,8 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
 
   const startConversation = async () => {
     if (!apiKey) {
-      toast.error("ElevenLabs API key is missing. Please configure it in your environment variables.");
-      console.error("Missing NEXT_PUBLIC_ELEVENLABS_API_KEY");
-      setIsLoading(false); // Added this line
+      toast.error("ElevenLabs API key is missing. Please configure it in your project settings.");
+      setIsLoading(false);
       return;
     }
 
@@ -71,63 +80,60 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
       }
 
       console.log("Starting conversation with prompt:", getPrompt());
-      console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO'); // Log agent ID
+      console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
       console.log("Attempting to connect...");
 
-      // --> Pass the API key here <--
       const conversation = await conversationModule.Conversation.startSession({
-        apiKey: apiKey, // Add your API key
+        apiKey: apiKey,
         agentId: '23g4tA9QfQmk5A2msRMO',
         overrides: { /* ... */ },
         onConnect: () => {
-          console.log("onConnect triggered"); // More specific log
+          console.log("onConnect triggered");
           setStatus('connected');
           toast.success(`${getTitle()} connected`);
           setIsLoading(false);
         },
-        onDisconnect: (reason?: string) => { // Check if reason is provided
-          console.error("onDisconnect triggered. Reason:", reason || 'No reason provided'); // Log reason if available
+        onDisconnect: (reason?: string) => {
+          console.error("onDisconnect triggered. Reason:", reason || 'No reason provided');
           setStatus('disconnected');
-          // Avoid showing toast if it was intentionally stopped
-          if (conversationRef.current) { // Check if it wasn't manually stopped
+          if (conversationRef.current) {
                toast.info(`${getTitle()} disconnected unexpectedly.`);
           }
           setIsLoading(false);
-          conversationRef.current = null; // Clear ref on disconnect
+          conversationRef.current = null;
         },
         onError: (error: any) => {
-          console.error('onError triggered:', error); // Log the full error object
-          // Try to get a more descriptive message
+          console.error('onError triggered:', error);
           const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown conversation error');
           toast.error(`Conversation Error: ${errorMessage}`);
-          setStatus('disconnected'); // Ensure status is updated on error
+          setStatus('disconnected');
           setIsLoading(false);
-          conversationRef.current = null; // Clear ref on error
+          conversationRef.current = null;
         },
-         onModeChange: (modeInfo: any) => {
-           console.log("Mode changed:", modeInfo); // Log full modeInfo
-           setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
-         },
-         onMessage: (message: any) => {
-           console.log("Received message:", JSON.stringify(message, null, 2)); // Prettier log
-         }
+        onModeChange: (modeInfo: any) => {
+          console.log("Mode changed:", modeInfo);
+          setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
+        },
+        onMessage: (message: any) => {
+          console.log("Received message:", JSON.stringify(message, null, 2));
+        }
       });
 
       console.log("startSession call completed, conversation object:", conversation);
       conversationRef.current = conversation;
 
-    } catch (error: any) { // Catch specific errors if possible
-       console.error('Failed to start conversation (catch block):', error);
-       let detailedMessage = 'Failed to start conversation.';
-       if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied')) {
-           detailedMessage = 'Microphone permission denied. Please allow access.';
-       } else if (error.message) {
-           detailedMessage += ` Error: ${error.message}`;
-       } else {
-           detailedMessage += ' Unknown error occurred.';
-       }
-       toast.error(detailedMessage);
-       setIsLoading(false);
+    } catch (error: any) {
+      console.error('Failed to start conversation (catch block):', error);
+      let detailedMessage = 'Failed to start conversation.';
+      if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied')) {
+          detailedMessage = 'Microphone permission denied. Please allow access.';
+      } else if (error.message) {
+          detailedMessage += ` Error: ${error.message}`;
+      } else {
+          detailedMessage += ' Unknown error occurred.';
+      }
+      toast.error(detailedMessage);
+      setIsLoading(false);
     }
   };
 
@@ -135,31 +141,28 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
     if (conversationRef.current) {
       try {
         console.log("Attempting to end session manually...");
-        const currentConvRef = conversationRef.current; // Store ref before nulling
-        conversationRef.current = null; // Nullify ref *before* async call to prevent race condition with onDisconnect toast
+        const currentConvRef = conversationRef.current;
+        conversationRef.current = null;
         await currentConvRef.endSession();
         console.log("Manual session end successful");
-        setStatus('disconnected'); // Explicitly set status
-        toast.info(`${getTitle()} disconnected.`); // Consistent disconnect message
+        setStatus('disconnected');
+        toast.info(`${getTitle()} disconnected.`);
       } catch (error) {
         console.error('Failed to end conversation:', error);
         toast.error(`Failed to end conversation: ${(error as Error).message || 'Unknown error'}`);
-        // Might still be disconnected, ensure state reflects it
         setStatus('disconnected');
       } finally {
-          setIsLoading(false); // Ensure loading is off
+          setIsLoading(false);
       }
     } else {
         console.log("Stop called but no active conversation ref found.");
     }
   };
 
-  // Cleanup useEffect remains the same
   useEffect(() => {
     return () => {
       if (conversationRef.current) {
         console.log("Component unmounting, cleaning up conversation");
-        // Use the same stop logic, but maybe without the toast
         const currentConvRef = conversationRef.current;
         conversationRef.current = null;
         currentConvRef.endSession().catch((err: Error) => {
@@ -167,7 +170,7 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
         });
       }
     };
-  }, []); // Ensure dependency array is correct if needed, [] is fine here
+  }, []);
 
   return (
     <Card className="p-6 max-w-xl mx-auto">
