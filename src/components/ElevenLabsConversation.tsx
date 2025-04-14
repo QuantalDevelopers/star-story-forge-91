@@ -16,6 +16,7 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   const conversationRef = useRef<any>(null);
   const [conversationModule, setConversationModule] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey] = useState(import.meta.env.VITE_ELEVENLABS_API_KEY);
 
   // Dynamically import the @11labs/client package to avoid SSR issues
   useEffect(() => {
@@ -52,88 +53,121 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
   };
 
   const startConversation = async () => {
+    if (!apiKey) {
+      toast.error("ElevenLabs API key is missing. Please configure it in your environment variables.");
+      console.error("Missing NEXT_PUBLIC_ELEVENLABS_API_KEY");
+      setIsLoading(false); // Added this line
+      return;
+    }
+
     try {
       setIsLoading(true);
-      
-      // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       if (!conversationModule) {
-        toast.error("ElevenLabs client not loaded yet. Please try again in a moment.");
+        toast.error("ElevenLabs client not loaded yet. Please try again.");
         setIsLoading(false);
         return;
       }
 
       console.log("Starting conversation with prompt:", getPrompt());
+      console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO'); // Log agent ID
+      console.log("Attempting to connect...");
 
-      // Start the conversation with proper error handling
+      // --> Pass the API key here <--
       const conversation = await conversationModule.Conversation.startSession({
-        agentId: '23g4tA9QfQmk5A2msRMO', // ElevenLabs Interview Coach agent ID
-        overrides: {
-          agent: {
-            prompt: {
-              prompt: getPrompt(),
-            },
-          },
-        },
+        apiKey: apiKey, // Add your API key
+        agentId: '23g4tA9QfQmk5A2msRMO',
+        overrides: { /* ... */ },
         onConnect: () => {
-          console.log("Conversation connected successfully");
+          console.log("onConnect triggered"); // More specific log
           setStatus('connected');
           toast.success(`${getTitle()} connected`);
           setIsLoading(false);
         },
-        onDisconnect: () => {
-          console.log("Conversation disconnected");
+        onDisconnect: (reason?: string) => { // Check if reason is provided
+          console.error("onDisconnect triggered. Reason:", reason || 'No reason provided'); // Log reason if available
           setStatus('disconnected');
-          toast.info(`${getTitle()} disconnected`);
+          // Avoid showing toast if it was intentionally stopped
+          if (conversationRef.current) { // Check if it wasn't manually stopped
+               toast.info(`${getTitle()} disconnected unexpectedly.`);
+          }
           setIsLoading(false);
+          conversationRef.current = null; // Clear ref on disconnect
         },
         onError: (error: any) => {
-          console.error('Conversation error:', error);
-          toast.error(`Error: ${error.message || 'Unknown error'}`);
+          console.error('onError triggered:', error); // Log the full error object
+          // Try to get a more descriptive message
+          const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown conversation error');
+          toast.error(`Conversation Error: ${errorMessage}`);
+          setStatus('disconnected'); // Ensure status is updated on error
           setIsLoading(false);
+          conversationRef.current = null; // Clear ref on error
         },
-        onModeChange: (modeInfo: any) => {
-          console.log("Mode changed to:", modeInfo.mode);
-          setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
-        },
-        onMessage: (message: any) => {
-          console.log("Received message:", message);
-        }
+         onModeChange: (modeInfo: any) => {
+           console.log("Mode changed:", modeInfo); // Log full modeInfo
+           setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
+         },
+         onMessage: (message: any) => {
+           console.log("Received message:", JSON.stringify(message, null, 2)); // Prettier log
+         }
       });
-      
+
+      console.log("startSession call completed, conversation object:", conversation);
       conversationRef.current = conversation;
-      console.log("Conversation reference set:", conversationRef.current);
-    } catch (error) {
-      console.error('Failed to start conversation:', error);
-      toast.error(`Failed to start conversation: ${(error as Error).message || 'Unknown error'}`);
-      setIsLoading(false);
+
+    } catch (error: any) { // Catch specific errors if possible
+       console.error('Failed to start conversation (catch block):', error);
+       let detailedMessage = 'Failed to start conversation.';
+       if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied')) {
+           detailedMessage = 'Microphone permission denied. Please allow access.';
+       } else if (error.message) {
+           detailedMessage += ` Error: ${error.message}`;
+       } else {
+           detailedMessage += ' Unknown error occurred.';
+       }
+       toast.error(detailedMessage);
+       setIsLoading(false);
     }
   };
 
   const stopConversation = async () => {
     if (conversationRef.current) {
       try {
-        console.log("Ending conversation session");
-        await conversationRef.current.endSession();
-        console.log("Conversation ended successfully");
-        conversationRef.current = null;
+        console.log("Attempting to end session manually...");
+        const currentConvRef = conversationRef.current; // Store ref before nulling
+        conversationRef.current = null; // Nullify ref *before* async call to prevent race condition with onDisconnect toast
+        await currentConvRef.endSession();
+        console.log("Manual session end successful");
+        setStatus('disconnected'); // Explicitly set status
+        toast.info(`${getTitle()} disconnected.`); // Consistent disconnect message
       } catch (error) {
         console.error('Failed to end conversation:', error);
         toast.error(`Failed to end conversation: ${(error as Error).message || 'Unknown error'}`);
+        // Might still be disconnected, ensure state reflects it
+        setStatus('disconnected');
+      } finally {
+          setIsLoading(false); // Ensure loading is off
       }
+    } else {
+        console.log("Stop called but no active conversation ref found.");
     }
   };
 
-  // Clean up on unmount
+  // Cleanup useEffect remains the same
   useEffect(() => {
     return () => {
       if (conversationRef.current) {
         console.log("Component unmounting, cleaning up conversation");
-        stopConversation();
+        // Use the same stop logic, but maybe without the toast
+        const currentConvRef = conversationRef.current;
+        conversationRef.current = null;
+        currentConvRef.endSession().catch((err: Error) => {
+            console.error("Error ending session on unmount:", err);
+        });
       }
     };
-  }, []);
+  }, []); // Ensure dependency array is correct if needed, [] is fine here
 
   return (
     <Card className="p-6 max-w-xl mx-auto">
