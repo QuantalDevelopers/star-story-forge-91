@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { Mic, X } from 'lucide-react';
+import { useElevenLabsConversation } from '@/hooks/useElevenLabsConversation';
 
 type ElevenLabsConversationProps = {
   type: 'delivery' | 'star' | 'scratch';
@@ -10,38 +11,13 @@ type ElevenLabsConversationProps = {
 };
 
 const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, onClose }) => {
-  const [status, setStatus] = useState<'disconnected' | 'connected'>('disconnected');
-  const [mode, setMode] = useState<'listening' | 'speaking'>('listening');
-  const conversationRef = useRef<any>(null);
-  const [conversationModule, setConversationModule] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    const loadElevenLabsClient = async () => {
-      try {
-        const module = await import('@11labs/client');
-        setConversationModule(module);
-      } catch (err) {
-        console.error("Failed to load ElevenLabs client:", err);
-        toast.error("Failed to load ElevenLabs client");
-      }
-    };
-    
-    const fetchApiKey = async () => {
-      try {
-        const response = await fetch('/api/elevenlabs-key');
-        const data = await response.json();
-        setApiKey(data.apiKey);
-      } catch (error) {
-        console.error("Failed to fetch ElevenLabs API key:", error);
-        toast.error("Failed to retrieve API key");
-      }
-    };
-
-    loadElevenLabsClient();
-    fetchApiKey();
-  }, []);
+  const { 
+    status, 
+    mode, 
+    isLoading, 
+    startConversation, 
+    stopConversation 
+  } = useElevenLabsConversation(type);
 
   const getTitle = () => {
     switch(type) {
@@ -50,127 +26,6 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
       case 'scratch': return 'Start From Scratch';
     }
   };
-
-  const getPrompt = () => {
-    switch(type) {
-      case 'delivery': 
-        return "You are an interview coach helping the user practice their interview delivery. Give constructive feedback on their speaking style, clarity, and confidence.";
-      case 'star':
-        return "You are an interview coach helping the user structure their interview responses using the STAR method (Situation, Task, Action, Result). Guide them through creating effective stories using this framework.";
-      case 'scratch':
-        return "You are an interview coach helping the user create new interview stories from scratch. Help them identify relevant experiences and structure them effectively for interviews.";
-    }
-  };
-
-  const startConversation = async () => {
-    if (!apiKey) {
-      toast.error("ElevenLabs API key is missing. Please configure it in your project settings.");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      if (!conversationModule) {
-        toast.error("ElevenLabs client not loaded yet. Please try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("Starting conversation with prompt:", getPrompt());
-      console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
-      console.log("Attempting to connect...");
-
-      const conversation = await conversationModule.Conversation.startSession({
-        apiKey: apiKey,
-        agentId: '23g4tA9QfQmk5A2msRMO',
-        overrides: { /* ... */ },
-        onConnect: () => {
-          console.log("onConnect triggered");
-          setStatus('connected');
-          toast.success(`${getTitle()} connected`);
-          setIsLoading(false);
-        },
-        onDisconnect: (reason?: string) => {
-          console.error("onDisconnect triggered. Reason:", reason || 'No reason provided');
-          setStatus('disconnected');
-          if (conversationRef.current) {
-               toast.info(`${getTitle()} disconnected unexpectedly.`);
-          }
-          setIsLoading(false);
-          conversationRef.current = null;
-        },
-        onError: (error: any) => {
-          console.error('onError triggered:', error);
-          const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown conversation error');
-          toast.error(`Conversation Error: ${errorMessage}`);
-          setStatus('disconnected');
-          setIsLoading(false);
-          conversationRef.current = null;
-        },
-        onModeChange: (modeInfo: any) => {
-          console.log("Mode changed:", modeInfo);
-          setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
-        },
-        onMessage: (message: any) => {
-          console.log("Received message:", JSON.stringify(message, null, 2));
-        }
-      });
-
-      console.log("startSession call completed, conversation object:", conversation);
-      conversationRef.current = conversation;
-
-    } catch (error: any) {
-      console.error('Failed to start conversation (catch block):', error);
-      let detailedMessage = 'Failed to start conversation.';
-      if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied')) {
-          detailedMessage = 'Microphone permission denied. Please allow access.';
-      } else if (error.message) {
-          detailedMessage += ` Error: ${error.message}`;
-      } else {
-          detailedMessage += ' Unknown error occurred.';
-      }
-      toast.error(detailedMessage);
-      setIsLoading(false);
-    }
-  };
-
-  const stopConversation = async () => {
-    if (conversationRef.current) {
-      try {
-        console.log("Attempting to end session manually...");
-        const currentConvRef = conversationRef.current;
-        conversationRef.current = null;
-        await currentConvRef.endSession();
-        console.log("Manual session end successful");
-        setStatus('disconnected');
-        toast.info(`${getTitle()} disconnected.`);
-      } catch (error) {
-        console.error('Failed to end conversation:', error);
-        toast.error(`Failed to end conversation: ${(error as Error).message || 'Unknown error'}`);
-        setStatus('disconnected');
-      } finally {
-          setIsLoading(false);
-      }
-    } else {
-        console.log("Stop called but no active conversation ref found.");
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (conversationRef.current) {
-        console.log("Component unmounting, cleaning up conversation");
-        const currentConvRef = conversationRef.current;
-        conversationRef.current = null;
-        currentConvRef.endSession().catch((err: Error) => {
-            console.error("Error ending session on unmount:", err);
-        });
-      }
-    };
-  }, []);
 
   return (
     <Card className="p-6 max-w-xl mx-auto">

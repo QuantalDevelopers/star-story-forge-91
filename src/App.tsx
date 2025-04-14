@@ -12,6 +12,7 @@ import Stories from "./pages/Stories";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Practice from "./pages/Practice";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/edit/:id" element={<Edit />} />
               <Route path="/stories" element={<Stories />} />
+              <Route path="/practice/:id" element={<Practice />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </StoryProvider>
