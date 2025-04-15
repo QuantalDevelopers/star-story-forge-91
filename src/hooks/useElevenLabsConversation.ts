@@ -12,8 +12,8 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const [conversationModule, setConversationModule] = useState<any>(null);
   const conversationRef = useRef<any>(null);
 
-  // ⚠️ HARDCODED API KEY for testing
-  const apiKey = '';
+  // Use the provided API key
+  const apiKey = 'sk_d606a16d35671cfcb347ab94ca2d304b6fb9333cd570293f';
 
   useEffect(() => {
     // Load ElevenLabs client
@@ -75,7 +75,6 @@ export const useElevenLabsConversation = (type: ConversationType) => {
 
       console.log("Starting session");
       const conversation = await conversationModule.Conversation.startSession({
-
         apiKey: apiKey,
         agentId: '23g4tA9QfQmk5A2msRMO',
         overrides: {
