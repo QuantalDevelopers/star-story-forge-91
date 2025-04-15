@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -10,9 +9,11 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const [status, setStatus] = useState<ConversationStatus>('disconnected');
   const [mode, setMode] = useState<ConversationMode>('listening');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
   const [conversationModule, setConversationModule] = useState<any>(null);
   const conversationRef = useRef<any>(null);
+
+  // ⚠️ HARDCODED API KEY for testing
+  const apiKey = '';
 
   useEffect(() => {
     // Load ElevenLabs client
@@ -25,32 +26,8 @@ export const useElevenLabsConversation = (type: ConversationType) => {
         toast.error("Failed to load ElevenLabs client");
       }
     };
-    
-    // Fetch API key
-    const fetchApiKey = async () => {
-      try {
-        const response = await fetch('/api/elevenlabs-key');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text();
-          throw new Error(`Expected JSON response but got: ${contentType}. Response text: ${text.substring(0, 100)}...`);
-        }
-        const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error);
-        }
-        setApiKey(data.apiKey);
-      } catch (error) {
-        console.error("Failed to fetch ElevenLabs API key:", error);
-        toast.error("Failed to retrieve API key");
-      }
-    };
 
     loadElevenLabsClient();
-    fetchApiKey();
 
     // Cleanup on unmount
     return () => {
@@ -78,7 +55,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
 
   const startConversation = async () => {
     if (!apiKey) {
-      toast.error("ElevenLabs API key is missing. Please configure it in your project settings.");
+      toast.error("ElevenLabs API key is missing. Please configure it.");
       setIsLoading(false);
       return;
     }
@@ -95,26 +72,26 @@ export const useElevenLabsConversation = (type: ConversationType) => {
 
       console.log("Starting conversation with prompt:", getPrompt());
       console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
-      console.log("Attempting to connect...");
 
+      console.log("Starting session");
       const conversation = await conversationModule.Conversation.startSession({
+
         apiKey: apiKey,
         agentId: '23g4tA9QfQmk5A2msRMO',
         overrides: {
           agent: {
-            prompt: {
-              prompt: getPrompt()
-            }
+            // prompt: {
+            //   prompt: getPrompt()
+            // }
           }
         },
         onConnect: () => {
-          console.log("onConnect triggered");
           setStatus('connected');
           toast.success(`${getTitle(type)} connected`);
           setIsLoading(false);
         },
         onDisconnect: (reason?: string) => {
-          console.error("onDisconnect triggered. Reason:", reason || 'No reason provided');
+          console.error("Disconnected:", reason);
           setStatus('disconnected');
           if (conversationRef.current) {
             toast.info(`${getTitle(type)} disconnected unexpectedly.`);
@@ -123,34 +100,29 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           conversationRef.current = null;
         },
         onError: (error: any) => {
-          console.error('onError triggered:', error);
-          const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown conversation error');
-          toast.error(`Conversation Error: ${errorMessage}`);
+          console.error("Conversation error:", error);
+          toast.error(`Conversation Error: ${error?.message || 'Unknown error'}`);
           setStatus('disconnected');
           setIsLoading(false);
           conversationRef.current = null;
         },
         onModeChange: (modeInfo: any) => {
-          console.log("Mode changed:", modeInfo);
           setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
         },
         onMessage: (message: any) => {
-          console.log("Received message:", JSON.stringify(message, null, 2));
+          console.log("Message received:", message);
         }
       });
 
-      console.log("startSession call completed, conversation object:", conversation);
       conversationRef.current = conversation;
 
     } catch (error: any) {
-      console.error('Failed to start conversation (catch block):', error);
+      console.error("Start failed:", error);
       let detailedMessage = 'Failed to start conversation.';
       if (error.name === 'NotAllowedError' || error.message?.includes('Permission denied')) {
-          detailedMessage = 'Microphone permission denied. Please allow access.';
+        detailedMessage = 'Microphone permission denied. Please allow access.';
       } else if (error.message) {
-          detailedMessage += ` Error: ${error.message}`;
-      } else {
-          detailedMessage += ' Unknown error occurred.';
+        detailedMessage += ` Error: ${error.message}`;
       }
       toast.error(detailedMessage);
       setIsLoading(false);
@@ -160,22 +132,20 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const stopConversation = async () => {
     if (conversationRef.current) {
       try {
-        console.log("Attempting to end session manually...");
         const currentConvRef = conversationRef.current;
         conversationRef.current = null;
         await currentConvRef.endSession();
-        console.log("Manual session end successful");
         setStatus('disconnected');
         toast.info(`${getTitle(type)} disconnected.`);
       } catch (error) {
-        console.error('Failed to end conversation:', error);
-        toast.error(`Failed to end conversation: ${(error as Error).message || 'Unknown error'}`);
+        console.error("End failed:", error);
+        toast.error(`Failed to end conversation: ${error?.message || 'Unknown error'}`);
         setStatus('disconnected');
       } finally {
-          setIsLoading(false);
+        setIsLoading(false);
       }
     } else {
-        console.log("Stop called but no active conversation ref found.");
+      console.log("No conversation to stop.");
     }
   };
 
