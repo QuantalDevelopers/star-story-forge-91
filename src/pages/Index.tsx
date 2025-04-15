@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ const Index = () => {
 
   const handleVoiceDesignClick = () => {
     setActiveMode('delivery');
-    const message = setWidgetContext('delivery');
+    setWidgetContext('delivery');
     
     // Show a toast message to guide the user
     toast.success("Voice Design activated", { 
@@ -59,29 +58,20 @@ const Index = () => {
           <div className="flex justify-center items-center py-10">
             <div 
               onClick={handleVoiceDesignClick}
-              className="w-64 h-64 rounded-full bg-gradient-to-br from-purple-400 via-indigo-500 to-teal-400 flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-105 shadow-lg"
+              className="w-64 h-64 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-[1.02]"
+              style={{
+                background: "url('public/lovable-uploads/2066d0db-b75d-41b0-a9c1-9beb662e81df.png')",
+                backgroundSize: "cover",
+                backgroundPosition: "center"
+              }}
             >
-              <div className="w-56 h-56 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex flex-col items-center justify-center text-white p-6">
-                <svg 
-                  width="48" 
-                  height="48" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="mb-3"
-                >
-                  <path 
-                    d="M12 18.75C15.3137 18.75 18 16.0637 18 12.75V11.25M12 18.75C8.68629 18.75 6 16.0637 6 12.75V11.25M12 18.75V22.5M8.25 22.5H15.75M12 15.75C10.3431 15.75 9 14.4069 9 12.75V4.5C9 2.84315 10.3431 1.5 12 1.5C13.6569 1.5 15 2.84315 15 4.5V12.75C15 14.4069 13.6569 15.75 12 15.75Z" 
-                    stroke="currentColor" 
-                    strokeWidth="1.5" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <h2 className="text-xl font-bold">Voice Design</h2>
-                <p className="text-sm text-center opacity-90 mt-1">
-                  Tap to start conversation
-                </p>
+              <div className="bg-black/50 backdrop-blur-sm w-full h-full rounded-full flex flex-col items-center justify-center text-white">
+                <div className="bg-white/10 backdrop-blur-md w-56 h-56 rounded-full flex flex-col items-center justify-center border border-white/20">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 18.75C15.3137 18.75 18 16.0637 18 12.75V11.25M12 18.75C8.68629 18.75 6 16.0637 6 12.75V11.25M12 18.75V22.5M8.25 22.5H15.75M12 15.75C10.3431 15.75 9 14.4069 9 12.75V4.5C9 2.84315 10.3431 1.5 12 1.5C13.6569 1.5 15 2.84315 15 4.5V12.75C15 14.4069 13.6569 15.75 12 15.75Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span className="text-lg font-medium mt-3">Try a call</span>
+                </div>
               </div>
             </div>
           </div>
