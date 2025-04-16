@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Story } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit2, Play, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { MessageSquare, Trash2 } from 'lucide-react';
+import ConversationView from './ConversationView';
 
 interface StoryCardProps {
   story: Story;
@@ -14,6 +14,8 @@ interface StoryCardProps {
 }
 
 const StoryCard: React.FC<StoryCardProps> = ({ story, onDelete }) => {
+  const [isConversationOpen, setIsConversationOpen] = useState(false);
+  
   const truncate = (text: string, length = 100) => {
     if (text.length <= length) return text;
     return text.substring(0, length) + '...';
@@ -39,19 +41,20 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, onDelete }) => {
         <Button variant="ghost" size="sm" onClick={() => onDelete(story.id)}>
           <Trash2 size={16} className="mr-1" /> Delete
         </Button>
-        <div className="flex gap-2">
-          <Link to={`/practice/${story.id}`}>
-            <Button variant="ghost" size="sm">
-              <Play size={16} className="mr-1" /> Practice
-            </Button>
-          </Link>
-          <Link to={`/edit/${story.id}`}>
-            <Button variant="outline" size="sm">
-              <Edit2 size={16} className="mr-1" /> Edit
-            </Button>
-          </Link>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setIsConversationOpen(true)}
+        >
+          <MessageSquare size={16} className="mr-1" /> View Conversation
+        </Button>
       </CardFooter>
+      
+      <ConversationView 
+        storyTitle={story.title}
+        open={isConversationOpen}
+        onOpenChange={setIsConversationOpen}
+      />
     </Card>
   );
 };
