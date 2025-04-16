@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,12 +8,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { setWidgetContext } from '@/utils/elevenlabsHelper';
 import { toast } from 'sonner';
 import ElevenLabsConversation from '@/components/ElevenLabsConversation';
+import { Dialog } from '@/components/ui/dialog';
 
 const Index = () => {
   const { stories } = useStories();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeMode, setActiveMode] = useState<'none' | 'delivery'>('none');
+  const [selectedStoryId, setSelectedStoryId] = useState<string | undefined>(undefined);
 
   const hasStories = stories.length > 0;
 
@@ -20,10 +23,22 @@ const Index = () => {
     setActiveMode('delivery');
     setWidgetContext('delivery');
     
-    // Show a toast message to guide the user
-    toast.success("Voice Design activated", { 
-      description: "Click on the circle to start or stop conversation"
-    });
+    // If there are stories, let the user select one
+    if (hasStories) {
+      // Pick the most recently updated story
+      const mostRecentStory = [...stories].sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )[0];
+      
+      setSelectedStoryId(mostRecentStory.id);
+      toast.success(`Voice Design activated for "${mostRecentStory.title}"`, { 
+        description: "Click on the circle to start or stop conversation"
+      });
+    } else {
+      toast.success("Voice Design activated", { 
+        description: "Click on the circle to start or stop conversation"
+      });
+    }
   };
 
   return (
@@ -52,7 +67,8 @@ const Index = () => {
         ) : activeMode !== 'none' ? (
           <ElevenLabsConversation 
             type={activeMode} 
-            onClose={() => setActiveMode('none')} 
+            onClose={() => setActiveMode('none')}
+            storyId={selectedStoryId} // Pass the selected story ID
           />
         ) : (
           <div className="flex justify-center items-center py-10">
@@ -60,7 +76,7 @@ const Index = () => {
               onClick={handleVoiceDesignClick}
               className="w-64 h-64 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 hover:scale-[1.02]"
               style={{
-                background: "url('public/lovable-uploads/2066d0db-b75d-41b0-a9c1-9beb662e81df.png')",
+                background: "url('/lovable-uploads/2066d0db-b75d-41b0-a9c1-9beb662e81df.png')",
                 backgroundSize: "cover",
                 backgroundPosition: "center"
               }}

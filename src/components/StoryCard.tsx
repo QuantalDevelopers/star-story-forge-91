@@ -21,6 +21,8 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, onDelete }) => {
     return text.substring(0, length) + '...';
   };
 
+  const hasConversation = Boolean(story.conversation && (story.conversation.messages?.length > 0 || story.conversation.audioUrl));
+
   return (
     <Card className="animate-fade-in">
       <CardHeader className="pb-2">
@@ -36,6 +38,13 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, onDelete }) => {
         <div className="mt-2 text-xs text-muted-foreground">
           Updated {formatDistanceToNow(new Date(story.updatedAt), { addSuffix: true })}
         </div>
+        {hasConversation && (
+          <div className="mt-2 text-xs text-primary-foreground">
+            <Badge variant="secondary" className="bg-primary/10">
+              <MessageSquare size={12} className="mr-1" /> Has conversation
+            </Badge>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between pt-0">
         <Button variant="ghost" size="sm" onClick={() => onDelete(story.id)}>

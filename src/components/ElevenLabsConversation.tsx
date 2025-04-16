@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, X, MessageSquare, Volume2, User, Bot } from 'lucide-react';
@@ -9,9 +8,14 @@ import { toast } from 'sonner';
 type ElevenLabsConversationProps = {
   type: 'delivery' | 'star' | 'scratch';
   onClose: () => void;
+  storyId?: string;
 };
 
-const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, onClose }) => {
+const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ 
+  type, 
+  onClose,
+  storyId 
+}) => {
   const { 
     status, 
     mode, 
@@ -21,10 +25,9 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
     audioUrl,
     startConversation, 
     stopConversation 
-  } = useElevenLabsConversation(type);
+  } = useElevenLabsConversation(type, storyId);
 
   useEffect(() => {
-    // Show helper toast when component mounts
     if (isModuleLoaded) {
       toast.info("Tap the circle to start or stop a conversation", {
         duration: 5000,
@@ -72,7 +75,6 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
           </TabsList>
           
           <TabsContent value="call" className="space-y-4">
-            {/* Main circular interface */}
             <div 
               className={`relative w-64 h-64 rounded-full flex items-center justify-center mx-auto ${!isLoading && isModuleLoaded ? "cursor-pointer transition-all duration-300" : ""}`}
               style={{
@@ -123,7 +125,6 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
               </div>
             </div>
 
-            {/* Status text */}
             <div className="mt-6 text-center">
               <p className="font-medium">
                 {!isModuleLoaded 
@@ -201,7 +202,6 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
           </TabsContent>
         </Tabs>
       ) : (
-        /* Main circular interface when no conversation yet */
         <div className="flex flex-col items-center">
           <div 
             className={`relative w-64 h-64 rounded-full flex items-center justify-center ${!isLoading && isModuleLoaded ? "cursor-pointer transition-all duration-300 hover:scale-105" : ""}`}
@@ -244,7 +244,6 @@ const ElevenLabsConversation: React.FC<ElevenLabsConversationProps> = ({ type, o
             </div>
           </div>
 
-          {/* Status text */}
           <div className="mt-6 text-center">
             <p className="font-medium">
               {!isModuleLoaded 

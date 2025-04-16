@@ -1,6 +1,6 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useStories } from '@/contexts/StoryContext';
 
 type ConversationMode = 'listening' | 'speaking';
 type ConversationStatus = 'disconnected' | 'connected';
@@ -10,7 +10,7 @@ type ConversationMessage = {
   content: string;
 };
 
-export const useElevenLabsConversation = (type: ConversationType) => {
+export const useElevenLabsConversation = (type: ConversationType, storyId?: string) => {
   const [status, setStatus] = useState<ConversationStatus>('disconnected');
   const [mode, setMode] = useState<ConversationMode>('listening');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +22,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const audioChunksRef = useRef<Blob[]>([]);
   const inactivityTimerRef = useRef<any>(null);
   const INACTIVITY_TIMEOUT = 180000; // 3 minutes of inactivity
+  const { updateStory, getStoryById } = useStories();
 
   // Use the provided API key
   const apiKey = 'sk_d606a16d35671cfcb347ab94ca2d304b6fb9333cd570293f';
@@ -162,6 +163,23 @@ export const useElevenLabsConversation = (type: ConversationType) => {
             const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
             const url = URL.createObjectURL(audioBlob);
             setAudioUrl(url);
+            
+            // Save conversation to story if we have a storyId
+            if (storyId && messages.length > 0) {
+              const story = getStoryById(storyId);
+              if (story) {
+                updateStory(storyId, {
+                  ...story,
+                  conversation: {
+                    messages: [...messages],
+                    audioUrl: url,
+                    timestamp: new Date().toISOString()
+                  },
+                  updatedAt: new Date().toISOString()
+                });
+                toast.success("Conversation saved to story");
+              }
+            }
           }
           
           if (inactivityTimerRef.current) {
@@ -188,13 +206,12 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           
           // Only process final messages, not tentative ones
           if (message.source === 'ai' || message.source === 'user') {
-            setMessages(prevMessages => [
-              ...prevMessages,
-              {
-                role: message.source,
-                content: message.message
-              }
-            ]);
+            const newMessage = {
+              role: message.source,
+              content: message.message
+            };
+            
+            setMessages(prevMessages => [...prevMessages, newMessage]);
           }
           
           // Store audio chunks for later playback
@@ -242,6 +259,23 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
           const url = URL.createObjectURL(audioBlob);
           setAudioUrl(url);
+          
+          // Save conversation to story if we have a storyId
+          if (storyId && messages.length > 0) {
+            const story = getStoryById(storyId);
+            if (story) {
+              updateStory(storyId, {
+                ...story,
+                conversation: {
+                  messages: [...messages],
+                  audioUrl: url,
+                  timestamp: new Date().toISOString()
+                },
+                updatedAt: new Date().toISOString()
+              });
+              toast.success("Conversation saved to story");
+            }
+          }
         }
         
         if (inactivityTimerRef.current) {

@@ -21,44 +21,11 @@ const ConversationView: React.FC<ConversationViewProps> = ({ storyId, open, onOp
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [volume, setVolume] = useState(1);
 
-  // This would be connected to a real API in production
-  // For now we'll use the mock conversation stored in the story context
-  const conversation = {
+  // Get conversation data from the story
+  const conversation = story?.conversation || { 
     audioUrl: null, 
-    transcript: [
-      {
-        role: 'ai',
-        content: 'Hello! I understand you have a story about ' + story?.title + '. Can you tell me more about the situation?'
-      },
-      {
-        role: 'user',
-        content: story?.situation || 'Our team was facing challenges with the current process.'
-      },
-      {
-        role: 'ai',
-        content: 'I see. What was your task or role in this situation?'
-      },
-      {
-        role: 'user',
-        content: story?.task || 'I needed to find a solution to improve the process.'
-      },
-      {
-        role: 'ai',
-        content: 'That sounds challenging. What actions did you take to address this?'
-      },
-      {
-        role: 'user',
-        content: story?.action || 'I researched options, developed a plan, and led the implementation.'
-      },
-      {
-        role: 'ai',
-        content: 'Very thorough approach! And what was the result of implementing these changes?'
-      },
-      {
-        role: 'user',
-        content: story?.result || 'We saw significant improvements in efficiency and team satisfaction.'
-      },
-    ]
+    messages: [],
+    timestamp: null
   };
 
   const handlePlayPause = () => {
@@ -208,8 +175,8 @@ const ConversationView: React.FC<ConversationViewProps> = ({ storyId, open, onOp
           
           <TabsContent value="text" className="flex-1 overflow-auto pr-2">
             <div className="space-y-4 py-2">
-              {conversation.transcript.length > 0 ? (
-                conversation.transcript.map((message, index) => (
+              {conversation.messages && conversation.messages.length > 0 ? (
+                conversation.messages.map((message: any, index: number) => (
                   <div 
                     key={index} 
                     className={`p-4 rounded-lg ${
@@ -231,8 +198,10 @@ const ConversationView: React.FC<ConversationViewProps> = ({ storyId, open, onOp
                         {message.role === 'ai' ? 'Interview Coach' : 'You'}
                       </div>
                       <div className="text-xs text-muted-foreground ml-auto">
-                        {/* Simulated timestamp for better UI - would come from actual data in production */}
-                        {new Date(Date.now() - (index * 60000)).toLocaleTimeString([], {
+                        {conversation.timestamp ? new Date(conversation.timestamp).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : new Date().toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}

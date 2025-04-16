@@ -1,4 +1,3 @@
-
 export interface Story {
   id: string;
   title: string;
@@ -7,8 +6,16 @@ export interface Story {
   task: string;
   action: string;
   result: string;
-  updatedAt: string;
   createdAt: string;
+  updatedAt: string;
+  conversation?: {
+    messages: Array<{
+      role: 'ai' | 'user';
+      content: string;
+    }>;
+    audioUrl: string | null;
+    timestamp: string | null;
+  };
 }
 
 export const LEADERSHIP_PRINCIPLES = [
