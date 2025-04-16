@@ -19,9 +19,32 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const conversationRef = useRef<any>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const inactivityTimerRef = useRef<any>(null);
+  const INACTIVITY_TIMEOUT = 180000; // 3 minutes of inactivity
 
   // Use the provided API key
   const apiKey = 'sk_d606a16d35671cfcb347ab94ca2d304b6fb9333cd570293f';
+
+  // Clear inactivity timer when component unmounts
+  const resetInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    
+    if (status === 'connected') {
+      inactivityTimerRef.current = setTimeout(() => {
+        toast.info("You've been inactive for a while. The conversation will end soon if there's no activity.");
+        
+        // Give another minute before actually disconnecting
+        setTimeout(() => {
+          if (status === 'connected') {
+            stopConversation();
+          }
+        }, 60000);
+      }, INACTIVITY_TIMEOUT);
+    }
+  };
 
   useEffect(() => {
     // Load ElevenLabs client
@@ -59,8 +82,19 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           console.error("Error ending session on unmount:", err);
         });
       }
+      
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    // Reset inactivity timer whenever user speaks or AI speaks
+    if (mode === 'listening' || mode === 'speaking') {
+      resetInactivityTimer();
+    }
+  }, [mode, status]);
 
   const getPrompt = () => {
     switch(type) {
@@ -93,8 +127,9 @@ export const useElevenLabsConversation = (type: ConversationType) => {
       console.log("Starting conversation with prompt:", getPrompt());
       console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
 
-      // Clear previous messages
+      // Clear previous messages and audio chunks
       setMessages([]);
+      audioChunksRef.current = [];
 
       console.log("Starting session");
       const conversation = await conversationModule.Conversation.startSession({
@@ -111,9 +146,10 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           setStatus('connected');
           toast.success(`${getTitle(type)} connected`);
           setIsLoading(false);
+          resetInactivityTimer();
         },
         onDisconnect: (reason?: string) => {
-          console.error("Disconnected:", reason);
+          console.log("Disconnected:", reason);
           setStatus('disconnected');
           if (conversationRef.current) {
             toast.info(`${getTitle(type)} disconnected.`);
@@ -121,12 +157,16 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           setIsLoading(false);
           conversationRef.current = null;
           
-          // Generate blob URL for audio playback (mock for demonstration)
-          // In a real implementation, you'd combine audio chunks from the conversation
-          // This is a placeholder until we implement actual audio recording
-          const mockAudioBlob = new Blob([], { type: 'audio/mp3' });
-          const url = URL.createObjectURL(mockAudioBlob);
-          setAudioUrl(url);
+          // Create audio blob from collected chunks
+          if (audioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+            const url = URL.createObjectURL(audioBlob);
+            setAudioUrl(url);
+          }
+          
+          if (inactivityTimerRef.current) {
+            clearTimeout(inactivityTimerRef.current);
+          }
         },
         onError: (error: any) => {
           console.error("Conversation error:", error);
@@ -134,9 +174,14 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           setStatus('disconnected');
           setIsLoading(false);
           conversationRef.current = null;
+          
+          if (inactivityTimerRef.current) {
+            clearTimeout(inactivityTimerRef.current);
+          }
         },
         onModeChange: (modeInfo: any) => {
           setMode(modeInfo.mode === 'speaking' ? 'speaking' : 'listening');
+          resetInactivityTimer();
         },
         onMessage: (message: any) => {
           console.log("Message received:", message);
@@ -151,6 +196,14 @@ export const useElevenLabsConversation = (type: ConversationType) => {
               }
             ]);
           }
+          
+          // Store audio chunks for later playback
+          if (message.audioChunk) {
+            audioChunksRef.current.push(message.audioChunk);
+          }
+          
+          // Reset inactivity timer on message activity
+          resetInactivityTimer();
         }
       });
 
@@ -183,6 +236,17 @@ export const useElevenLabsConversation = (type: ConversationType) => {
         setStatus('disconnected');
       } finally {
         setIsLoading(false);
+        
+        // Create audio blob from collected chunks
+        if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+        }
+        
+        if (inactivityTimerRef.current) {
+          clearTimeout(inactivityTimerRef.current);
+        }
       }
     } else {
       console.log("No conversation to stop.");
