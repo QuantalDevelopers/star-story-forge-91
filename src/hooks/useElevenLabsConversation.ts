@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -10,6 +11,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const [mode, setMode] = useState<ConversationMode>('listening');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationModule, setConversationModule] = useState<any>(null);
+  const [isModuleLoaded, setIsModuleLoaded] = useState(false);
   const conversationRef = useRef<any>(null);
 
   // Use the provided API key
@@ -17,13 +19,22 @@ export const useElevenLabsConversation = (type: ConversationType) => {
 
   useEffect(() => {
     // Load ElevenLabs client
+    let isMounted = true;
+    
     const loadElevenLabsClient = async () => {
       try {
+        console.log("Loading ElevenLabs client...");
         const module = await import('@11labs/client');
-        setConversationModule(module);
+        if (isMounted) {
+          console.log("ElevenLabs client loaded successfully");
+          setConversationModule(module);
+          setIsModuleLoaded(true);
+        }
       } catch (err) {
         console.error("Failed to load ElevenLabs client:", err);
-        toast.error("Failed to load ElevenLabs client");
+        if (isMounted) {
+          toast.error("Failed to load ElevenLabs client. Please refresh the page and try again.");
+        }
       }
     };
 
@@ -31,6 +42,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
 
     // Cleanup on unmount
     return () => {
+      isMounted = false;
       if (conversationRef.current) {
         console.log("Component unmounting, cleaning up conversation");
         const currentConvRef = conversationRef.current;
@@ -60,15 +72,15 @@ export const useElevenLabsConversation = (type: ConversationType) => {
       return;
     }
 
+    if (!isModuleLoaded || !conversationModule) {
+      toast.error("ElevenLabs client is still loading. Please wait a moment and try again.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      if (!conversationModule) {
-        toast.error("ElevenLabs client not loaded yet. Please try again.");
-        setIsLoading(false);
-        return;
-      }
 
       console.log("Starting conversation with prompt:", getPrompt());
       console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
@@ -152,6 +164,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
     status,
     mode,
     isLoading,
+    isModuleLoaded,
     startConversation,
     stopConversation
   };
