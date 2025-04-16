@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 type ConversationMode = 'listening' | 'speaking';
 type ConversationStatus = 'disconnected' | 'connected';
 type ConversationType = 'delivery' | 'star' | 'scratch';
+type ConversationMessage = {
+  role: 'ai' | 'user';
+  content: string;
+};
 
 export const useElevenLabsConversation = (type: ConversationType) => {
   const [status, setStatus] = useState<ConversationStatus>('disconnected');
@@ -12,6 +16,8 @@ export const useElevenLabsConversation = (type: ConversationType) => {
   const [isLoading, setIsLoading] = useState(false);
   const [conversationModule, setConversationModule] = useState<any>(null);
   const [isModuleLoaded, setIsModuleLoaded] = useState(false);
+  const [messages, setMessages] = useState<ConversationMessage[]>([]);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const conversationRef = useRef<any>(null);
 
   // Use the provided API key
@@ -24,6 +30,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
     const loadElevenLabsClient = async () => {
       try {
         console.log("Loading ElevenLabs client...");
+        // Import client synchronously to speed up loading
         const module = await import('@11labs/client');
         if (isMounted) {
           console.log("ElevenLabs client loaded successfully");
@@ -38,6 +45,7 @@ export const useElevenLabsConversation = (type: ConversationType) => {
       }
     };
 
+    // Load immediately
     loadElevenLabsClient();
 
     // Cleanup on unmount
@@ -85,15 +93,18 @@ export const useElevenLabsConversation = (type: ConversationType) => {
       console.log("Starting conversation with prompt:", getPrompt());
       console.log("Using Agent ID:", '23g4tA9QfQmk5A2msRMO');
 
+      // Clear previous messages
+      setMessages([]);
+
       console.log("Starting session");
       const conversation = await conversationModule.Conversation.startSession({
         apiKey: apiKey,
         agentId: '23g4tA9QfQmk5A2msRMO',
         overrides: {
           agent: {
-            // prompt: {
-            //   prompt: getPrompt()
-            // }
+            prompt: {
+              prompt: getPrompt()
+            }
           }
         },
         onConnect: () => {
@@ -105,10 +116,17 @@ export const useElevenLabsConversation = (type: ConversationType) => {
           console.error("Disconnected:", reason);
           setStatus('disconnected');
           if (conversationRef.current) {
-            toast.info(`${getTitle(type)} disconnected unexpectedly.`);
+            toast.info(`${getTitle(type)} disconnected.`);
           }
           setIsLoading(false);
           conversationRef.current = null;
+          
+          // Generate blob URL for audio playback (mock for demonstration)
+          // In a real implementation, you'd combine audio chunks from the conversation
+          // This is a placeholder until we implement actual audio recording
+          const mockAudioBlob = new Blob([], { type: 'audio/mp3' });
+          const url = URL.createObjectURL(mockAudioBlob);
+          setAudioUrl(url);
         },
         onError: (error: any) => {
           console.error("Conversation error:", error);
@@ -122,6 +140,17 @@ export const useElevenLabsConversation = (type: ConversationType) => {
         },
         onMessage: (message: any) => {
           console.log("Message received:", message);
+          
+          // Only process final messages, not tentative ones
+          if (message.source === 'ai' || message.source === 'user') {
+            setMessages(prevMessages => [
+              ...prevMessages,
+              {
+                role: message.source,
+                content: message.message
+              }
+            ]);
+          }
         }
       });
 
@@ -165,6 +194,8 @@ export const useElevenLabsConversation = (type: ConversationType) => {
     mode,
     isLoading,
     isModuleLoaded,
+    messages,
+    audioUrl,
     startConversation,
     stopConversation
   };

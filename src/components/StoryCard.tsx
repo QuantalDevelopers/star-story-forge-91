@@ -51,7 +51,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, onDelete }) => {
       </CardFooter>
       
       <ConversationView 
-        storyTitle={story.title}
+        storyId={story.id}
         open={isConversationOpen}
         onOpenChange={setIsConversationOpen}
       />
